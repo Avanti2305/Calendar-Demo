@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { signInWithPopup } from "firebase/auth";
 import { auth, provider, db } from "./firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import login from "./login.css";
+//import login from "login.css";
 
 const Login = () => {
     const [user, setUser] = useState(null);
