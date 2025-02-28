@@ -1,0 +1,142 @@
+/* Common styles */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  
+  /* Mobile styles (up to 576px) */
+  @media (max-width: 576px) {
+    .container-fluid {
+      padding: 0.5rem;
+    }
+    
+    .btn-sm {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.875rem;
+    }
+  
+    .table {
+      font-size: 0.875rem;
+    }
+
+    .action-btn-text {
+      display: inline-block !important;
+      font-size: 14px;
+    }
+    
+    .action-buttons-container {
+      flex-direction: column;
+      width: 100%;
+    }
+    
+    .action-btn {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 0.5rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .table th.text-center {
+      text-align: left !important;
+    }
+
+    .table td {
+      padding: 0.75rem;
+    }
+
+    /* Fix action column alignment */
+    .table th:last-child,
+    .table td:last-child {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+  }
+  
+  /* Tablet styles (577px to 991px) */
+  @media (min-width: 577px) and (max-width: 991px) {
+    .container-fluid {
+      padding: 1rem;
+    }
+  }
+  
+  /* Laptop styles (992px and above) */
+  @media (min-width: 992px) {
+    .container-fluid {
+      padding: 1.5rem 2rem;
+    }
+  
+    .card {
+      margin-bottom: 1.5rem;
+    }
+  
+    .table td, .table th {
+      padding: 1rem;
+    }
+  }
+  
+  /* Utility classes */
+  .w-auto-lg {
+    width: auto !important;
+  }
+  
+  .flex-gap {
+    gap: 0.5rem;
+  }
+
+  /* Tablet and larger screens */
+  @media (min-width: 577px) {
+    .action-buttons-container {
+      flex-direction: row;
+      justify-content: flex-end;
+    }
+
+    .action-btn {
+      min-width: 100px;
+    }
+  }
+
+  /* Action buttons container styles */
+  .action-buttons-container {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    align-items: center;
+  }
+
+  /* Edit form styles */
+  .edit-form {
+    opacity: 0;
+    animation: fadeIn 0.3s ease-in-out forwards;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Responsive styles for edit form */
+  @media (max-width: 768px) {
+    .edit-form .d-flex {
+      flex-direction: column;
+    }
+    
+    .edit-form .btn {
+      margin-bottom: 0.5rem;
+    }
+  }
+
+  @media (min-width: 769px) {
+    .edit-form .btn {
+      min-width: 120px;
+    }
+  }

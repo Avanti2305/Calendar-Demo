@@ -14,6 +14,7 @@ import { db, auth } from "./firebase"; // Import Firebase auth
 import { getAuth } from "firebase/auth";
 import { useNavigate } from "react-router-dom"; // For navigation
 import "bootstrap/dist/css/bootstrap.min.css";
+import "./assets/css/addevent-responsive.css";
 
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
@@ -36,17 +37,37 @@ const AddEventPage = () => {
   const [candidateName, setCandidateName] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // Add these time validation functions at the top of your component
+  // Update the time validation functions
   const isValidTimeRange = (time) => {
     const [hours] = time.split(":").map(Number);
     return hours >= 9 && hours < 21; // 9 AM to 9 PM
   };
 
-  // Update the isLunchTime function
-  const isLunchTime = (time) => {
-    if (!time) return false;
-    const [hours, minutes] = time.split(":").map(Number);
-    return hours === 13 && minutes <= 30; // Block 1:00 PM to 1:30 PM
+  // Update the isLunchTime function to be more precise
+  const isLunchTime = (startTime, endTime) => {
+    if (!startTime || !endTime) return false;
+
+    const [startHour, startMinute] = startTime.split(":").map(Number);
+    const [endHour, endMinute] = endTime.split(":").map(Number);
+
+    const lunchStartHour = 13; // 1 PM
+    const lunchStartMinute = 0;
+    const lunchEndHour = 13; // 1:30 PM
+    const lunchEndMinute = 30;
+
+    const startTimeInMinutes = startHour * 60 + startMinute;
+    const endTimeInMinutes = endHour * 60 + endMinute;
+    const lunchStartInMinutes = lunchStartHour * 60 + lunchStartMinute;
+    const lunchEndInMinutes = lunchEndHour * 60 + lunchEndMinute;
+
+    return (
+      (startTimeInMinutes <= lunchStartInMinutes &&
+        endTimeInMinutes > lunchStartInMinutes) ||
+      (startTimeInMinutes >= lunchStartInMinutes &&
+        startTimeInMinutes < lunchEndInMinutes) ||
+      (startTimeInMinutes <= lunchStartInMinutes &&
+        endTimeInMinutes >= lunchEndInMinutes)
+    );
   };
 
   // Add this function to check for time overlaps
@@ -139,30 +160,30 @@ const AddEventPage = () => {
   const [candidateId, setCandidateId] = useState(null);
 
   // Add this useEffect to fetch candidate ID when component mounts
- // Add this near your other useEffects
- useEffect(() => {
-  const checkCandidateAuth = () => {
-    const candidateData = JSON.parse(localStorage.getItem("candidates"));
-    
-    if (!candidateData?.id) {
-      console.log("No authenticated candidate");
-      navigate("/SignIn");
-    } else {
-      console.log("Candidate authenticated:", candidateData.id);
-      // Set candidate data in state if needed
-      setCandidateName(candidateData.name || "");
-    }
-  };
+  // Add this near your other useEffects
+  useEffect(() => {
+    const checkCandidateAuth = () => {
+      const candidateData = JSON.parse(localStorage.getItem("candidates"));
 
-  // Initial check
-  checkCandidateAuth();
+      if (!candidateData?.id) {
+        console.log("No authenticated candidate");
+        navigate("/SignIn");
+      } else {
+        console.log("Candidate authenticated:", candidateData.id);
+        // Set candidate data in state if needed
+        setCandidateName(candidateData.name || "");
+      }
+    };
 
-  // Set up interval to periodically check authentication
-  const authCheckInterval = setInterval(checkCandidateAuth, 5000);
+    // Initial check
+    checkCandidateAuth();
 
-  // Cleanup interval on unmount
-  return () => clearInterval(authCheckInterval);
-}, [navigate]);
+    // Set up interval to periodically check authentication
+    const authCheckInterval = setInterval(checkCandidateAuth, 5000);
+
+    // Cleanup interval on unmount
+    return () => clearInterval(authCheckInterval);
+  }, [navigate]);
   // Add near the top of your component
   useEffect(() => {
     const checkAuth = () => {
@@ -277,39 +298,38 @@ const AddEventPage = () => {
     try {
       const event = events.find((e) => e.id === eventId);
       const candidateData = JSON.parse(localStorage.getItem("candidates"));
-  
+
       // Check if event exists
       if (!event) {
         alert("Event not found!");
         return;
       }
-  
+
       // Check if it's a past event
       if (isPastEvent(event.start)) {
         alert("Cannot delete past events!");
         return;
       }
-  
+
       // Verify ownership
       if (event.candidateId !== candidateData?.id) {
         alert("You can only delete your own events!");
         return;
       }
-  
+
       // Additional logging for debugging
       console.log("Deleting event:", {
         eventId,
         candidateId: event.candidateId,
-        currentCandidateId: candidateData?.id
+        currentCandidateId: candidateData?.id,
       });
-  
+
       // Delete the event
       await deleteDoc(doc(db, "events", eventId));
-      
+
       // Update local state
-      setEvents(events.filter(e => e.id !== eventId));
+      setEvents(events.filter((e) => e.id !== eventId));
       alert("Event deleted successfully!");
-      
     } catch (error) {
       console.error("Error deleting event:", error);
       if (error.code === "permission-denied") {
@@ -409,46 +429,46 @@ const AddEventPage = () => {
       alert("Please enter feedback before submitting");
       return;
     }
-  
+
     try {
       const candidateData = JSON.parse(localStorage.getItem("candidates"));
-      
+
       if (!candidateData?.id) {
         alert("Please sign in again to submit feedback");
         navigate("/SignIn");
         return;
       }
-  
+
       console.log("Submitting feedback as candidate:", candidateData.id);
-  
+
       // Verify ownership
       if (selectedFeedbackEvent.candidateId !== candidateData.id) {
         alert("You can only provide feedback for your own events");
         return;
       }
-  
+
       const eventRef = doc(db, "events", selectedFeedbackEvent.id);
-      
+
       // Structure the update data to match security rules
       const updateData = {
         feedback: feedback.trim(),
         lastUpdatedAt: new Date().toISOString(),
         lastUpdatedBy: candidateData.id,
         // Important: Include candidateId in the update to match security rules
-        candidateId: candidateData.id
+        candidateId: candidateData.id,
       };
-  
+
       await updateDoc(eventRef, updateData);
-  
+
       // Update local state
-      setEvents(prevEvents =>
-        prevEvents.map(event =>
+      setEvents((prevEvents) =>
+        prevEvents.map((event) =>
           event.id === selectedFeedbackEvent.id
             ? { ...event, ...updateData }
             : event
         )
       );
-  
+
       alert("Feedback submitted successfully!");
       handleCloseFeedbackModal();
     } catch (error) {
@@ -556,10 +576,10 @@ const AddEventPage = () => {
 
   return (
     <div className="container mt-4">
-      {/* Logout Button */}
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <h2>
-          Welcome
+      {/* Welcome Header - Made Responsive */}
+      <div className="welcome-header d-flex justify-content-between align-items-center mb-4 flex-wrap">
+        <h2 className="mb-0">
+          Welcome{" "}
           {candidateName || candidateName?.displayName || candidateName?.name}
         </h2>
         <button className="btn btn-danger" onClick={handleLogout}>
@@ -567,65 +587,73 @@ const AddEventPage = () => {
         </button>
       </div>
 
-      <div className="container">
+      {/* Event Form Section - Made Responsive */}
+      <div className="event-form-container">
         <div className="row">
           <div className="col-12">
             <h3 className="mb-3">Add Event</h3>
             <div className="card p-3">
-              <div className="row">
-                <div className="col-3 mb-3">
-                  <label className="form-label">
-                    Event Title <span className="text-danger">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Enter event title"
-                    className="form-control"
-                    value={eventTitle}
-                    onChange={(e) => setEventTitle(e.target.value)}
-                  />
-                </div>
-
-                <div className="col-3 mb-3">
-                  <label className="form-label">
-                    Company Name <span className="text-danger">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Enter company name"
-                    className="form-control"
-                    value={eventCompanyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                  />
-                </div>
-
-                <div className="col-3 mb-3">
-                  <label className="form-label">
-                    Technology<span className="text-danger">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Enter Technology"
-                    className="form-control"
-                    value={eventTechnolgy}
-                    onChange={(e) => setTechnology(e.target.value)}
-                  />
-                </div>
-
-                <div className="col-3 mb-3">
-                  <div className="mb-3">
+              <div className="row g-3">
+                {/* Event Title */}
+                <div className="col-12 col-md-6 col-lg-3">
+                  <div className="form-group-responsive">
                     <label className="form-label">
-                      {" "}
+                      Event Title <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={eventTitle}
+                      onChange={(e) => setEventTitle(e.target.value)}
+                      placeholder="Enter event title"
+                    />
+                  </div>
+                </div>
+
+                {/* Company Name */}
+                <div className="col-12 col-md-6 col-lg-3">
+                  <div className="form-group-responsive">
+                    <label className="form-label">
+                      Company Name <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={eventCompanyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      placeholder="Enter company name"
+                    />
+                  </div>
+                </div>
+
+                {/* Technology */}
+                <div className="col-12 col-md-6 col-lg-3">
+                  <div className="form-group-responsive">
+                    <label className="form-label">
+                      Technology <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={eventTechnolgy}
+                      onChange={(e) => setTechnology(e.target.value)}
+                      placeholder="Enter Technology"
+                    />
+                  </div>
+                </div>
+
+                {/* Interview Round */}
+                <div className="col-12 col-md-6 col-lg-3">
+                  <div className="form-group-responsive">
+                    <label className="form-label">
                       Round <span className="text-danger">*</span>
                     </label>
-
                     <select
                       className="form-control"
                       value={eventInterviewRound}
-                      placeholder="Select roundh "
                       onChange={(e) => setInterviewRound(e.target.value)}
                     >
-                       <option value="">Select Round</option>
+                      <option value="">Select Round</option>
                       <option value="Round 1">Technical Assessment Test</option>
                       <option value="Round 2">
                         Technical Discussion Round
@@ -636,173 +664,164 @@ const AddEventPage = () => {
                   </div>
                 </div>
 
-                <div className="col-3 mb-3">
-                  <div className="mb-3">
-                    <label className="form-label">
-                      Date <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      type="date"
-                      className="form-control"
-                      value={eventDate}
-                      min={getCurrentDateString()}
-                      onChange={(e) => {
-                        const selectedDate = new Date(e.target.value);
-                        if (selectedDate.getDay() === 0) {
-                          alert(
-                            "Sundays are not allowed. Please select another date."
-                          );
-                          setEventDate(""); // Reset the date if it's Sunday
-                        } else {
-                          setEventDate(e.target.value);
-                        }
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div className="col-6 mb-3">
-                  <div className="row">
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label">
-                        Start Time <span className="text-danger">*</span>
-                      </label>
-                      <input
-                        type="time"
-                        className="form-control"
-                        value={startTime}
-                        min="09:00"
-                        max="20:59"
-                        onChange={(e) => {
-                          const selectedTime = e.target.value;
-
-                          // Check for lunch time
-                          if (isLunchTime(selectedTime)) {
-                            setErrors((prev) => ({
-                              ...prev,
-                              startTime:
-                                "Cannot schedule during lunch time (1:00 PM - 1:30 PM)",
-                            }));
-                            return;
-                          }
-
-                          // Existing time range validation
-                          if (!isValidTimeRange(selectedTime)) {
-                            setErrors((prev) => ({
-                              ...prev,
-                              startTime:
-                                "Time must be between 9 AM and 9 PM Only", // Updated error message
-                            }));
-                            return;
-                          }
-
-                          // Overlap validation
-                          if (
-                            eventDate &&
-                            endTime &&
-                            checkTimeOverlap(eventDate, selectedTime, endTime)
-                          ) {
-                            setErrors((prev) => ({
-                              ...prev,
-                              startTime:
-                                "This time slot overlaps with an existing event",
-                            }));
-                            return;
-                          }
-
-                          setStartTime(selectedTime);
-                          setErrors((prev) => ({ ...prev, startTime: "" }));
-                        }}
-                      />
-                      {errors.startTime && (
-                        <small className="text-danger">
-                          {errors.startTime}
-                        </small>
-                      )}
+                {/* Date and Time Section */}
+                <div className="col-12">
+                  <div className="row g-3">
+                    {/* Date */}
+                    <div className="col-12 col-md-4">
+                      <div className="form-group-responsive">
+                        <label className="form-label">
+                          Date <span className="text-danger">*</span>
+                        </label>
+                        <input
+                          type="date"
+                          className="form-control"
+                          value={eventDate}
+                          min={getCurrentDateString()}
+                          onChange={(e) => {
+                            const selectedDate = new Date(e.target.value);
+                            if (selectedDate.getDay() === 0) {
+                              alert(
+                                "Sundays are not allowed. Please select another date."
+                              );
+                              setEventDate("");
+                            } else {
+                              setEventDate(e.target.value);
+                            }
+                          }}
+                        />
+                      </div>
                     </div>
 
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label">
-                        End Time <span className="text-danger">*</span>
-                      </label>
-                      <input
-                        type="time"
-                        className="form-control"
-                        value={endTime}
-                        min="09:00"
-                        max="20:59"
-                        onChange={(e) => {
-                          const selectedTime = e.target.value;
-
-                          // Check for lunch time
-                          if (isLunchTime(selectedTime)) {
-                            setErrors((prev) => ({
-                              ...prev,
-                              endTime:
-                                "Cannot schedule during lunch time (1:00 PM - 1:30 PM)",
-                            }));
-                            return;
-                          }
-
-                          // Existing time range validation
-                          if (!isValidTimeRange(selectedTime)) {
-                            setErrors((prev) => ({
-                              ...prev,
-                              endTime: "End time must be between 9 AM and 9 PM",
-                            }));
-                            return;
-                          }
-
-                          // Overlap validation
-                          if (
-                            eventDate &&
-                            startTime &&
-                            checkTimeOverlap(eventDate, startTime, selectedTime)
-                          ) {
-                            setErrors((prev) => ({
-                              ...prev,
-                              endTime:
-                                "This time slot overlaps with an existing event",
-                            }));
-                            return;
-                          }
-
-                          // Check if time spans lunch period
-                          if (startTime) {
-                            const start = new Date(`2000-01-01T${startTime}`);
-                            const end = new Date(`2000-01-01T${selectedTime}`);
-                            const lunchStart = new Date(`2000-01-01T13:00`);
-                            const lunchEnd = new Date(`2000-01-01T13:30`);
-
+                    {/* Start Time */}
+                    <div className="col-12 col-md-4">
+                      <div className="form-group-responsive">
+                        <label className="form-label">
+                          Start Time <span className="text-danger">*</span>
+                        </label>
+                        <input
+                          type="time"
+                          className="form-control"
+                          value={startTime}
+                          min="09:00"
+                          max="20:59"
+                          onChange={(e) => {
+                            const selectedTime = e.target.value;
+                            // Check valid time range
+                            if (!isValidTimeRange(selectedTime)) {
+                              setErrors((prev) => ({
+                                ...prev,
+                                startTime:
+                                  "Please select a time between 9 AM and 9 PM",
+                              }));
+                              return;
+                            }
+                            // Check lunch time
+                            if (isLunchTime(selectedTime, endTime)) {
+                              setErrors((prev) => ({
+                                ...prev,
+                                startTime:
+                                  "Cannot schedule during lunch time (1:00 PM - 1:30 PM)",
+                              }));
+                              return;
+                            }
+                            // Check time overlap
                             if (
-                              (start <= lunchStart && end >= lunchEnd) ||
-                              (start >= lunchStart && start < lunchEnd) ||
-                              (end > lunchStart && end <= lunchEnd)
+                              checkTimeOverlap(eventDate, selectedTime, endTime)
+                            ) {
+                              setErrors((prev) => ({
+                                ...prev,
+                                startTime:
+                                  "This time slot overlaps with an existing event",
+                              }));
+                              return;
+                            }
+                            setErrors((prev) => ({ ...prev, startTime: null }));
+                            setStartTime(selectedTime);
+                          }}
+                        />
+                        {errors.startTime && (
+                          <small className="text-danger">
+                            {errors.startTime}
+                          </small>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* End Time */}
+                    <div className="col-12 col-md-4">
+                      <div className="form-group-responsive">
+                        <label className="form-label">
+                          End Time <span className="text-danger">*</span>
+                        </label>
+                        <input
+                          type="time"
+                          className="form-control"
+                          value={endTime}
+                          min="09:00"
+                          max="20:59"
+                          onChange={(e) => {
+                            const selectedTime = e.target.value;
+                            // Check valid time range
+                            if (!isValidTimeRange(selectedTime)) {
+                              setErrors((prev) => ({
+                                ...prev,
+                                endTime:
+                                  "Please select a time between 9 AM and 9 PM",
+                              }));
+                              return;
+                            }
+                            // Check lunch time
+                            if (isLunchTime(startTime, selectedTime)) {
+                              setErrors((prev) => ({
+                                ...prev,
+                                endTime:
+                                  "Cannot schedule during lunch time (1:00 PM - 1:30 PM)",
+                              }));
+                              return;
+                            }
+                            // Check valid sequence
+                            if (selectedTime <= startTime) {
+                              setErrors((prev) => ({
+                                ...prev,
+                                endTime: "End time must be after start time",
+                              }));
+                              return;
+                            }
+                            // Check time overlap
+                            if (
+                              checkTimeOverlap(
+                                eventDate,
+                                startTime,
+                                selectedTime
+                              )
                             ) {
                               setErrors((prev) => ({
                                 ...prev,
                                 endTime:
-                                  "Time slot cannot overlap with lunch time (1:00 PM - 1:30 PM)",
+                                  "This time slot overlaps with an existing event",
                               }));
                               return;
                             }
-                          }
-
-                          setEndTime(selectedTime);
-                          setErrors((prev) => ({ ...prev, endTime: "" }));
-                        }}
-                      />
-                      {errors.endTime && (
-                        <small className="text-danger">{errors.endTime}</small>
-                      )}
+                            setErrors((prev) => ({ ...prev, endTime: null }));
+                            setEndTime(selectedTime);
+                          }}
+                        />
+                        {errors.endTime && (
+                          <small className="text-danger">
+                            {errors.endTime}
+                          </small>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div class="d-flex justify-content-end">
+              {/* Submit Button */}
+              <div className="d-flex justify-content-end mt-4">
                 <button
-                  className="btn btn-primary w-25"
+                  className="btn btn-primary w-100 w-md-50 w-lg-25"
                   onClick={handleAddEvent}
                 >
                   Submit
@@ -813,23 +832,18 @@ const AddEventPage = () => {
         </div>
       </div>
 
+      {/* Event List Section */}
       <div className="col-12 my-4">
         <h3>Event List</h3>
-        <div
-          style={{
-            borderRadius: "8px",
-            padding: "10px",
-            background: "#fff",
-          }}
-        >
+        <div className="table-responsive-custom card">
           <DataTable
             value={sortedEvents}
             paginator
             rows={5}
             stripedRows
-            responsiveLayout="scroll"
-            selectionMode="single"
-            style={{ width: "100%", borderCollapse: "collapse" }}
+            responsiveLayout="stack"
+            breakpoint="960px"
+            className="p-datatable-sm"
           >
             <Column
               field="title"
@@ -840,7 +854,7 @@ const AddEventPage = () => {
                 textAlign: "center",
               }}
             />
-            <Column
+            {/* <Column
               field="id"
               header="Candidate ID"
               style={{
@@ -848,7 +862,7 @@ const AddEventPage = () => {
                 padding: "8px",
                 textAlign: "center",
               }}
-            />
+            /> */}
             <Column
               field="company"
               header="Company Name"
@@ -920,10 +934,10 @@ const AddEventPage = () => {
         </div>
       </div>
 
-      {/* Feedback Modal */}
+      {/* Feedback Modal - Made Responsive */}
       {selectedFeedbackEvent && (
         <div className="modal fade show d-block" tabIndex="-1">
-          <div className="modal-dialog">
+          <div className="modal-dialog modal-responsive">
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">
@@ -963,125 +977,6 @@ const AddEventPage = () => {
           </div>
         </div>
       )}
-
-      {/* Edit Event Modal */}
-      {/* {selectedEvent && (
-        <div className="modal fade show d-block" tabIndex="-1">
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Edit Event</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={handleCloseModal}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <label>Event Title</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={selectedEvent.title}
-                  onChange={(e) =>
-                    setSelectedEvent({
-                      ...selectedEvent,
-                      title: e.target.value,
-                    })
-                  }
-                />
-
-                <label>Company Name</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={selectedEvent.company}
-                  onChange={(e) =>
-                    setSelectedEvent({
-                      ...selectedEvent,
-                      company: e.target.value,
-                    })
-                  }
-                />
-
-                <label>Interview Round</label>
-                <select
-                  className="form-control"
-                  value={selectedEvent.interviewRound}
-                  onChange={(e) =>
-                    setSelectedEvent({
-                      ...selectedEvent,
-                      interviewRound: e.target.value,
-                    })
-                  }
-                >
-                  <option value="Round 1">Round 1</option>
-                  <option value="Round 2">Round 2</option>
-                  <option value="Final Round">Final Round</option>
-                </select>
-
-                <label>Date</label>
-                <input
-                  type="date"
-                  className="form-control"
-                  value={selectedEvent.start.split("T")[0]}
-                  onChange={(e) =>
-                    setSelectedEvent({
-                      ...selectedEvent,
-                      start:
-                        e.target.value +
-                        "T" +
-                        selectedEvent.start.split("T")[1],
-                    })
-                  }
-                />
-
-                <label>Start Time</label>
-                <input
-                  type="time"
-                  className="form-control"
-                  value={selectedEvent.start.split("T")[1].slice(0, 5)}
-                  onChange={(e) =>
-                    setSelectedEvent({
-                      ...selectedEvent,
-                      start:
-                        selectedEvent.start.split("T")[0] +
-                        "T" +
-                        e.target.value,
-                    })
-                  }
-                />
-
-                <label>End Time</label>
-                <input
-                  type="time"
-                  className="form-control"
-                  value={selectedEvent.end.split("T")[1].slice(0, 5)}
-                  onChange={(e) =>
-                    setSelectedEvent({
-                      ...selectedEvent,
-                      end:
-                        selectedEvent.end.split("T")[0] + "T" + e.target.value,
-                    })
-                  }
-                />
-              </div>
-
-              <div className="modal-footer">
-                <button
-                  className="btn btn-secondary"
-                  onClick={handleCloseModal}
-                >
-                  Cancel
-                </button>
-                <button className="btn btn-primary" onClick={handleUpdateEvent}>
-                  Update Event
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )} */}
     </div>
   );
 };

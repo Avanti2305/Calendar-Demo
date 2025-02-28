@@ -13,6 +13,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import Modal from "react-bootstrap/Modal";
 import Button from "react-bootstrap/Button";
+import "./assets/css/responsive.css";
 
 const Adminpage = () => {
   const [candidates, setCandidates] = useState([]);
@@ -20,7 +21,7 @@ const Adminpage = () => {
   const [newCandidateMobile, setNewCandidateMobile] = useState("");
   const [newCandidatePassword, setNewCandidatePassword] = useState("");
   const [showForm, setShowForm] = useState(false);
-  const [editingCandidateId, setEditingCandidateId] = useState(null);
+  const [editingCandidateId, setEditingCandidateId] = useState("");
   const [editingName, setEditingName] = useState("");
   const [editingMobile, setEditingMobile] = useState("");
   const [editingPassword, setEditingPassword] = useState("");
@@ -106,33 +107,65 @@ const Adminpage = () => {
     }
   };
 
+  // Replace the existing handleEdit function
   const handleEdit = async (id) => {
-    const candidateToEdit = candidates.find((candidate) => candidate.id === id);
-    setEditingCandidateId(id);
-    setEditingName(candidateToEdit.name);
-    setEditingMobile(candidateToEdit.mobile);
-    setEditingPassword(candidateToEdit.password);
+    try {
+      const candidateToEdit = candidates.find(
+        (candidate) => candidate.id === id
+      );
+      if (candidateToEdit) {
+        // Update form state
+        setEditingCandidateId(id);
+        setEditingName(candidateToEdit.name);
+        setEditingMobile(candidateToEdit.mobile);
+        setEditingPassword(candidateToEdit.password);
+
+        // Hide add form if it's open
+        setShowForm(true);
+
+        // Scroll to edit form
+        setTimeout(() => {
+          document
+            .querySelector(".edit-form")
+            ?.scrollIntoView({ behavior: "smooth" });
+        }, 100);
+      } else {
+        throw new Error("Candidate not found");
+      }
+    } catch (error) {
+      console.error("Error setting up edit form:", error);
+      alert("Failed to load candidate data for editing.");
+    }
   };
 
+  // Replace the existing handleUpdate function
   const handleUpdate = async (e) => {
     e.preventDefault();
-    if (editingName && editingMobile && editingPassword) {
-      try {
-        const docRef = doc(db, "candidates", editingCandidateId);
-        await updateDoc(docRef, {
-          name: editingName,
-          mobile: editingMobile,
-          password: editingPassword,
-        });
-        setEditingCandidateId(null);
-        setEditingName("");
-        setEditingMobile("");
-        setEditingPassword("");
-        await fetchData(); // Changed from fetchCandidates to fetchData
-      } catch (error) {
-        console.error("Error updating candidate:", error);
-        alert("Failed to update candidate. Please try again.");
-      }
+
+    if (!editingName || !editingMobile || !editingPassword) {
+      alert("Please fill all fields before updating.");
+      return;
+    }
+
+    try {
+      const docRef = doc(db, "candidates", editingCandidateId);
+      await updateDoc(docRef, {
+        name: editingName,
+        mobile: editingMobile,
+        password: editingPassword,
+      });
+
+      // Reset form fields and fetch updated data
+      setEditingCandidateId(null);
+      setEditingName("");
+      setEditingMobile("");
+      setEditingPassword("");
+      await fetchData();
+
+      alert("Candidate updated successfully!");
+    } catch (error) {
+      console.error("Error updating candidate:", error);
+      alert("Failed to update candidate. Please try again.");
     }
   };
 
@@ -253,256 +286,259 @@ const Adminpage = () => {
   }, []);
 
   return (
-    <div className="container my-5">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="text-primary m-0">Candidate Management</h2>
-        <button
-          className="btn btn-danger"
-          onClick={() => {
-            handleLogout();
-            navigate("/SignIn");
-          }}
-        >
-          <i className="bi bi-box-arrow-right me-2"></i>
-          Logout
-        </button>
-      </div>
-
-      <div className="card shadow-sm">
-        <div className="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-          <h5 className="m-0 font-weight-bold text-primary">Candidate List</h5>
-          <button
-            className="btn btn-success"
-            onClick={() => setShowForm(!showForm)}
-          >
-            {showForm ? "Cancel" : "Add Candidate"}
+    <div className="container-fluid">
+      {/* Header Section */}
+      <div className="row g-3 mb-4 align-items-center">
+        <div className="col-12 col-lg-6">
+          <h2 className="text-primary h3 mb-0">Candidate Management</h2>
+        </div>
+        <div className="col-12 col-lg-6 text-lg-end">
+          <button className="btn btn-danger" onClick={handleLogout}>
+            <i className="bi bi-box-arrow-right me-2"></i>
+            Logout
           </button>
         </div>
-        <div className="card-body">
+      </div>
+
+      {/* Candidate List Card */}
+      <div className="card shadow-sm mb-4">
+        <div className="card-header bg-white py-3">
+          <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2">
+            <h5 className="m-0 text-primary">Candidate List</h5>
+            <button
+              className="btn btn-success"
+              onClick={() => setShowForm(!showForm)}
+            >
+              <i
+                className={`bi ${showForm ? "bi-x-lg" : "bi-plus-lg"} me-2`}
+              ></i>
+              {showForm ? "Cancel" : "Add Candidate"}
+            </button>
+          </div>
+        </div>
+        <div className="card-body p-0">
           <div className="table-responsive">
-            <table className="table table-hover">
+            <table className="table table-hover mb-0">
               <thead className="table-light">
                 <tr>
+                  <th className="d-none d-md-table-cell">#</th>
                   <th>Name</th>
                   <th>Mobile</th>
                   <th className="text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {candidates.map((candidate) => {
-                  const { name, mobile, password } = candidate;
-                  return (
-                    <tr key={candidate.id}>
-                      <td>{name}</td>
-                      <td>{mobile}</td>
-                      <td className="text-center">
+                {candidates.map((candidate, index) => (
+                  <tr key={candidate.id}>
+                    <td className="d-none d-md-table-cell">{index + 1}</td>
+                    <td>{candidate.name}</td>
+                    <td>{candidate.mobile}</td>
+                    <td className="action-column">
+                      <div className="action-buttons-container">
                         <button
-                          className="btn btn-primary btn-sm me-2"
+                          className="btn btn-primary action-btn"
                           onClick={() => navigate(`/Viewpage/${candidate.id}`)}
                         >
-                          <i className="bi bi-eye me-1"></i>View
+                          <i className="bi bi-eye me-1"></i>
+                          <span className="action-btn-text">View</span>
                         </button>
                         <button
-                          className="btn btn-warning btn-sm me-2"
+                          className="btn btn-warning action-btn"
                           onClick={() => handleEdit(candidate.id)}
                         >
-                          <i className="bi bi-pencil me-1"></i>Edit
+                          <i className="bi bi-pencil me-1"></i>
+                          <span className="action-btn-text">Edit</span>
                         </button>
                         <button
-                          className="btn btn-danger btn-sm"
+                          className="btn btn-danger action-btn"
                           onClick={() => handleDelete(candidate.id)}
                         >
-                          <i className="bi bi-trash me-1"></i>Delete
+                          <i className="bi bi-trash me-1"></i>
+                          <span className="action-btn-text">Delete</span>
                         </button>
-                      </td>
-                    </tr>
-                  );
-                })}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         </div>
       </div>
 
+      {/* Add/Edit Form */}
       {showForm && (
-        <form onSubmit={handleAddCandidate} className="mb-4">
-          <div className="form-group mb-3">
-            <label htmlFor="name" className="form-label">
-              Candidate Name
-            </label>
-            <input
-              type="text"
-              id="name"
-              className="form-control"
-              value={newCandidateName}
-              onChange={(e) => setNewCandidateName(e.target.value)}
-              placeholder="Enter candidate name"
-            />
+        <div className="card shadow-sm mb-4">
+          <div className="card-body">
+            <form onSubmit={handleAddCandidate} className="row g-3">
+              <div className="col-12 col-lg-4">
+                <label className="form-label">Candidate Name</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={newCandidateName}
+                  onChange={(e) => setNewCandidateName(e.target.value)}
+                  placeholder="Enter candidate name"
+                />
+              </div>
+              <div className="col-12 col-lg-4">
+                <label className="form-label">Mobile Number</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={newCandidateMobile}
+                  onChange={(e) => setNewCandidateMobile(e.target.value)}
+                  placeholder="Enter mobile number"
+                  maxLength={10}
+                />
+              </div>
+              <div className="col-12 col-lg-4">
+                <label className="form-label">Password</label>
+                <input
+                  type="password"
+                  className="form-control"
+                  value={newCandidatePassword}
+                  onChange={(e) => setNewCandidatePassword(e.target.value)}
+                  placeholder="Enter password"
+                />
+              </div>
+              <div className="col-12">
+                <button
+                  type="submit"
+                  className="btn btn-primary w-100 w-lg-auto"
+                >
+                  Add Candidate
+                </button>
+              </div>
+            </form>
           </div>
-          <div className="form-group mb-3">
-            <label htmlFor="mobile" className="form-label">
-              Mobile Number
-            </label>
-            <input
-              type="text"
-              id="mobile"
-              className="form-control"
-              value={newCandidateMobile}
-              onChange={(e) => setNewCandidateMobile(e.target.value)}
-              placeholder="Enter mobile number"
-              maxLength={10}
-            />
-          </div>
-          <div className="form-group mb-3">
-            <label htmlFor="password" className="form-label">
-              Password
-            </label>
-            <input
-              type="password"
-              id="password"
-              className="form-control"
-              value={newCandidatePassword}
-              onChange={(e) => setNewCandidatePassword(e.target.value)}
-              placeholder="Enter password"
-            />
-          </div>
-          <button className="btn btn-primary w-100" type="submit">
-            Add Candidate
-          </button>
-        </form>
+        </div>
       )}
 
+      {/* Edit Candidate Form */}
       {editingCandidateId && (
-        <form onSubmit={handleUpdate} className="mb-4">
-          <h4>Edit Candidate</h4>
-          <div className="form-group mb-3">
-            <label htmlFor="editName" className="form-label">
-              Candidate Name
-            </label>
-            <input
-              type="text"
-              id="editName"
-              className="form-control"
-              value={editingName}
-              onChange={(e) => setEditingName(e.target.value)}
-              placeholder="Enter candidate name"
-            />
+        <div className="card shadow-sm mb-4 edit-form">
+          <div className="card-header bg-white py-3">
+            <h5 className="m-0 text-primary">Edit Candidate</h5>
           </div>
-          <div className="form-group mb-3">
-            <label htmlFor="editMobile" className="form-label">
-              Mobile Number
-            </label>
-            <input
-              type="text"
-              id="editMobile"
-              className="form-control"
-              value={editingMobile}
-              onChange={(e) => setEditingMobile(e.target.value)}
-              placeholder="Enter mobile number"
-              maxLength={10}
-            />
+          <div className="card-body">
+            <form onSubmit={handleUpdate} className="row g-3">
+              <div className="col-12 col-lg-4">
+                <label className="form-label">Candidate Name</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={editingName}
+                  onChange={(e) => setEditingName(e.target.value)}
+                  placeholder="Enter candidate name"
+                  required
+                />
+              </div>
+              <div className="col-12 col-lg-4">
+                <label className="form-label">Mobile Number</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={editingMobile}
+                  onChange={(e) => setEditingMobile(e.target.value)}
+                  placeholder="Enter mobile number"
+                  maxLength={10}
+                  required
+                />
+              </div>
+              <div className="col-12 col-lg-4">
+                <label className="form-label">Password</label>
+                <input
+                  type="password"
+                  className="form-control"
+                  value={editingPassword}
+                  onChange={(e) => setEditingPassword(e.target.value)}
+                  placeholder="Enter password"
+                  required
+                />
+              </div>
+              <div className="col-12">
+                <div className="d-flex flex-column flex-md-row gap-2">
+                  <button
+                    type="submit"
+                    className="btn btn-primary w-100 w-md-auto"
+                  >
+                    Update Candidate
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary w-100 w-md-auto"
+                    onClick={() => {
+                      setEditingCandidateId(null);
+                      setEditingName("");
+                      setEditingMobile("");
+                      setEditingPassword("");
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
-          <div className="form-group mb-3">
-            <label htmlFor="editPassword" className="form-label">
-              Password
-            </label>
-            <input
-              type="password"
-              id="editPassword"
-              className="form-control"
-              value={editingPassword}
-              onChange={(e) => setEditingPassword(e.target.value)}
-              placeholder="Enter password"
-            />
-          </div>
-          <button className="btn btn-primary w-100" type="submit">
-            Update Candidate
-          </button>
-        </form>
+        </div>
       )}
 
-      <div className="card shadow-sm mt-4">
-        <div className="card-header bg-light border-bottom">
+      {/* Event Requests Section */}
+      <div className="card shadow-sm">
+        <div className="card-header bg-white">
           <h5 className="card-title mb-0 text-primary">Event Requests</h5>
         </div>
         <div className="card-body p-0">
           <div className="table-responsive">
-            <table className="table table-hover table-striped mb-0">
-              <thead>
-                <tr className="bg-light">
-                  <th className="px-4">Candidate Name</th>
-                  <th className="px-4">Event Title</th>
-                  <th className="px-4">Date</th>
-                  <th className="px-4">Time</th>
-                  <th
-                    className="px-4 text-center"
-                    style={{ minWidth: "200px" }}
-                  >
-                    Actions
-                  </th>
+            <table className="table table-hover mb-0">
+              <thead className="table-light">
+                <tr>
+                  <th>Name</th>
+                  <th>Event</th>
+                  <th className="d-none d-lg-table-cell">Date</th>
+                  <th className="d-none d-lg-table-cell">Time</th>
+                  <th className="text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {events.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" className="text-center py-4">
-                      No events found
+                {events.map((event) => (
+                  <tr key={event.id}>
+                    <td>{event.candidateName}</td>
+                    <td>{event.title}</td>
+                    <td className="d-none d-lg-table-cell">
+                      {new Date(event.date).toLocaleDateString()}
+                    </td>
+                    <td className="d-none d-lg-table-cell">
+                      {event.start?.toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </td>
+                    <td className="action-column">
+                      <div className="action-buttons-container">
+                        <button
+                          className="btn btn-success btn-sm action-btn"
+                          onClick={() =>
+                            handleEventAction(event.id, "approved")
+                          }
+                        >
+                          <i className="bi bi-check-circle me-1"></i>
+                          <span className="action-btn-text">Approve</span>
+                        </button>
+                        <button
+                          className="btn btn-danger btn-sm action-btn"
+                          onClick={() =>
+                            handleEventAction(event.id, "rejected")
+                          }
+                        >
+                          <i className="bi bi-x-circle me-1"></i>
+                          <span className="action-btn-text">Reject</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
-                ) : (
-                  events.map((event) => (
-                    <tr key={event.id}>
-                      <td className="px-4 align-middle">
-                        {event.candidateName}
-                      </td>
-                      <td className="px-4 align-middle">{event.title}</td>
-                      <td className="px-4 align-middle">
-                        {event.date
-                          ? new Date(event.date).toLocaleDateString()
-                          : ""}
-                      </td>
-                      <td className="px-4 align-middle">
-                        {event.start && event.end ? (
-                          <>
-                            {event.start.toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                            {" - "}
-                            {event.end.toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </>
-                        ) : (
-                          ""
-                        )}
-                      </td>
-                      <td className="px-4 text-center">
-                        <div className="btn-group">
-                          <button
-                            className="btn btn-success btn-sm px-3"
-                            onClick={() =>
-                              handleEventAction(event.id, "approved")
-                            }
-                          >
-                            <i className="bi bi-check-circle me-2"></i>
-                            Approve
-                          </button>
-                          <button
-                            className="btn btn-danger btn-sm px-3 ms-2"
-                            onClick={() =>
-                              handleEventAction(event.id, "rejected")
-                            }
-                          >
-                            <i className="bi bi-x-circle me-2"></i>
-                            Reject
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
+                ))}
               </tbody>
             </table>
           </div>

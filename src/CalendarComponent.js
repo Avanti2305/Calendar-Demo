@@ -12,53 +12,7 @@ import { db } from "./firebase";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import styled from "styled-components";
-
-// Update the CalendarWrapper styled component
-const CalendarWrapper = styled.div`
-  .fc-day-sun {
-    background-color: rgba(255, 0, 0, 0.2) !important;
-  }
-
-  .fc-event {
-    margin: 2px 0;
-    padding: 2px;
-    border-radius: 3px;
-    min-height: 100px;
-  }
-
-  .event-content {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .event-time {
-    color: #ffffff;
-    font-size: 0.9em;
-    font-weight: bold;
-  }
-
-  .event-title {
-    font-weight: bold;
-    margin: 2px 0;
-    color: #ffffff;
-  }
-
-  .event-details {
-    font-size: 0.85em;
-    color: #ffffff;
-    line-height: 1.3;
-  }
-
-  .fc-event-title-container {
-    flex-grow: 1;
-  }
-
-  .fc-event-main {
-    padding: 4px;
-  }
-`;
+import "./assets/css/calendar-responsive.css";
 
 const CalendarComponent = () => {
   const [events, setEvents] = useState([]);
@@ -151,15 +105,15 @@ const CalendarComponent = () => {
   };
 
   return (
-    <CalendarWrapper className="container mt-4">
-      <header className="d-flex justify-content-between align-items-center bg-primary text-white p-3 rounded">
+    <div className="container-fluid calendar-container mt-4">
+      <header className="calendar-header d-flex justify-content-between align-items-center bg-primary text-white p-3 rounded">
         <h1 className="m-0">Event Calendar</h1>
-        <button className="btn btn-light" onClick={handleLogin}>
+        <button className="btn btn-light px-4" onClick={handleLogin}>
           Login
         </button>
       </header>
 
-      <div className="mt-3 p-3 bg-white shadow rounded">
+      <div className="mt-3 p-2 p-md-3 bg-white shadow rounded">
         <FullCalendar
           plugins={[timeGridPlugin, interactionPlugin]}
           initialView="timeGridWeek"
@@ -184,52 +138,31 @@ const CalendarComponent = () => {
             minute: "2-digit",
             meridiem: "short",
           }}
-          displayEventTime={true} // Changed to true
-          displayEventEnd={true} // Changed to true
+          displayEventTime={true}
+          displayEventEnd={true}
           eventOverlap={false}
           selectOverlap={false}
-          eventDisplay="block" // Added for better visibility
-          eventColor="#3788d8" // Added default color
-          eventTextColor="#ffffff" // Added text color
+          eventDisplay="block"
+          eventColor="#3788d8"
+          eventTextColor="#ffffff"
           eventDidMount={(info) => {
             const { company, technology, candidateName } =
               info.event.extendedProps;
             const eventEl = info.el;
             const titleEl = eventEl.querySelector(".fc-event-title");
-            const timeEl = eventEl.querySelector(".fc-event-time");
 
-            // Format the time
-            const startTime = info.event.start
-              ? info.event.start.toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
-              : "";
-            const endTime = info.event.end
-              ? info.event.end.toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
-              : "";
-
-            // Update time element if it exists
-            // if (timeEl) {
-            //   timeEl.innerHTML = `${startTime} - ${endTime}`;
-            // }
-
-            // Update title element with event details
             if (titleEl) {
               titleEl.innerHTML = `
-                <div class="event-content" >
-                 
-                  
-                  <div class="event-details" style="font-size: 0.85em;">
-                    <div>Technology: ${technology || ""}</div>
-                    <div>Candidate: ${candidateName || ""}</div>
-                  <div >
-                    ${info.event.title}
-                  </div>
-                    <div>Company: ${company || ""}</div>
+                <div class="event-content">
+                  <div class="event-details">
+                    <div class="event-item">Candidate: ${
+                      candidateName || ""
+                    }</div>
+                    <div class="event-item">Technology: ${
+                      technology || ""
+                    }</div>
+                    <div class="event-item">Title: ${info.event.title}</div>
+                    <div class="event-item">Company: ${company || ""}</div>
                   </div>
                 </div>
               `;
@@ -247,9 +180,44 @@ const CalendarComponent = () => {
               `,
             };
           }}
+          dayCellClassNames={(arg) => {
+            return arg.date.getDay() === 0 ? "sunday-cell" : "";
+          }}
+          dayHeaderClassNames={(arg) => {
+            return arg.date.getDay() === 0 ? "sunday-header" : "";
+          }}
+          slotLabelClassNames={(arg) => {
+            const day = arg.date.getDay();
+            return day === 0 ? "sunday-slot" : "";
+          }}
+          views={{
+            timeGridWeek: {
+              titleFormat: { year: "numeric", month: "short", day: "numeric" },
+              dayHeaderFormat: {
+                weekday: window.innerWidth < 768 ? "short" : "long",
+              },
+              slotLabelFormat: {
+                hour: "numeric",
+                minute: "2-digit",
+                meridiem: window.innerWidth < 768 ? "short" : "long",
+              },
+              dayHeaderContent: (args) => {
+                const day = args.date.getDay();
+                const element = document.createElement("span");
+                element.innerHTML = args.date.toLocaleDateString("en-US", {
+                  weekday: window.innerWidth < 768 ? "short" : "long",
+                });
+                if (day === 0) {
+                  element.style.color = "#dc3545";
+                  element.style.fontWeight = "bold";
+                }
+                return { domNodes: [element] };
+              },
+            },
+          }}
         />
       </div>
-    </CalendarWrapper>
+    </div>
   );
 };
 

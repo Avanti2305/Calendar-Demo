@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate,Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "./firebase";
 
@@ -42,7 +42,7 @@ const SignIn = () => {
 
         navigate("/Adminpage");
       } catch (error) {
-        console.error("Auth check error:", error);
+        // console.error("Auth check error:", error);
         localStorage.clear();
       }
     };
@@ -164,11 +164,11 @@ const SignIn = () => {
   };
 
   return (
-    <div className="container d-flex justify-content-center align-items-center vh-100">
+    <div className="container d-flex justify-content-center align-items-center min-vh-100">
       <div className="card shadow-lg p-4" style={{ width: "400px" }}>
         <h2 className="text-center mb-4">Sign In</h2>
-        <form onSubmit={handleSignIn}>
-          <div className="mb-3">
+        <form onSubmit={handleSignIn} className="d-flex flex-column align-items-center">
+          <div className="mb-3 w-100">
             <label className="form-label">Phone Number</label>
             <input
               type="tel"
@@ -180,7 +180,7 @@ const SignIn = () => {
               maxLength={10}
             />
           </div>
-          <div className="mb-3">
+          <div className="mb-3 w-100">
             <label className="form-label">Password</label>
             <input
               type="password"
@@ -191,15 +191,18 @@ const SignIn = () => {
               required
             />
           </div>
-          <button
-            type="submit"
-            className="btn btn-primary w-100"
-            disabled={loading}
-          >
-            {loading ? "Signing in..." : "Sign In"}
-          </button>
+          <div className="d-flex justify-content-center w-100">
+            <button
+              type="submit"
+              className="btn btn-primary"
+              style={{ width: "150px" }}
+              disabled={loading}
+            >
+              {loading ? "Signing in..." : "Sign In"}
+            </button>
+          </div>
           <div className="mt-3 text-center">
-            <Link to="/" className="text-decoration-none">
+            <Link to="/CalendarComponent" className="text-decoration-none">
               Calendar Component
             </Link>
           </div>
