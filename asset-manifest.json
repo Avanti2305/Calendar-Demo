@@ -1,7 +1,7 @@
 {
   "files": {
     "main.css": "/Calendar-Demo/static/css/main.94ced5a7.css",
-    "main.js": "/Calendar-Demo/static/js/main.3ab8f2b3.js",
+    "main.js": "/Calendar-Demo/static/js/main.a87ab235.js",
     "static/media/fa-solid-900.ttf": "/Calendar-Demo/static/media/fa-solid-900.2582b0e4bcf85eceead0.ttf",
     "static/media/fa-brands-400.ttf": "/Calendar-Demo/static/media/fa-brands-400.1815e00441357e01619e.ttf",
     "static/media/fa-solid-900.woff2": "/Calendar-Demo/static/media/fa-solid-900.2463b90d9a316e4e5294.woff2",
@@ -12,10 +12,10 @@
     "static/media/fa-v4compatibility.woff2": "/Calendar-Demo/static/media/fa-v4compatibility.ea8f94e1d22e0d35ccd4.woff2",
     "index.html": "/Calendar-Demo/index.html",
     "main.94ced5a7.css.map": "/Calendar-Demo/static/css/main.94ced5a7.css.map",
-    "main.3ab8f2b3.js.map": "/Calendar-Demo/static/js/main.3ab8f2b3.js.map"
+    "main.a87ab235.js.map": "/Calendar-Demo/static/js/main.a87ab235.js.map"
   },
   "entrypoints": [
     "static/css/main.94ced5a7.css",
-    "static/js/main.3ab8f2b3.js"
+    "static/js/main.a87ab235.js"
   ]
 }
